@@ -11,14 +11,11 @@ ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Build-time: API_URL é usado pelo rewrite em next.config.ts (resolvido em build)
-# NEXT_PUBLIC_ADMIN_KEY é injetado no bundle do browser
+# API_URL: resolvido em build para o rewrite do next.config.ts
+# MAESTRO_API_KEY e NEXT_PUBLIC_ADMIN_KEY: injetados em RUNTIME via docker-compose
+# (não entram na imagem — sem risco de exposição em repos públicos)
 ARG API_URL=http://localhost:3001
-ARG MAESTRO_API_KEY=""
-ARG NEXT_PUBLIC_ADMIN_KEY=""
 ENV API_URL=$API_URL
-ENV MAESTRO_API_KEY=$MAESTRO_API_KEY
-ENV NEXT_PUBLIC_ADMIN_KEY=$NEXT_PUBLIC_ADMIN_KEY
 
 RUN --mount=type=cache,target=/root/.npm \
     npm run build

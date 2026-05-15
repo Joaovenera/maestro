@@ -57,7 +57,7 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
           build-args: |
-            ${{ matrix.service == 'web' && format('API_URL=http://maestro-api:3001\nMAESTRO_API_KEY={0}\nNEXT_PUBLIC_ADMIN_KEY={1}', secrets.MAESTRO_API_KEY, secrets.NEXT_PUBLIC_ADMIN_KEY) || '' }}
+            ${{ matrix.service == 'web' && 'API_URL=http://maestro-api:3001' || '' }}
 
   deploy:
     needs: build
