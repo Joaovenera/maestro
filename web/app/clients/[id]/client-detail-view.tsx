@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { statusColor, formatDate, relativeTime } from "@/lib/utils"
 import { ServiceActions } from "./service-actions"
 import { ClientActions } from "./client-actions"
+import { HardwareChart } from "@/components/charts/hardware-chart"
 import Link from "next/link"
 import {
   ArrowLeft, Globe, Cpu, Clock, CheckCircle2, XCircle,
@@ -247,6 +248,13 @@ export function ClientDetailView({ client, services, domains, slaData, quota, de
                       ))}
                     </div>
                   )}
+                  <div className="mt-5">
+                    <HardwareChart
+                      serviceId={svc.id}
+                      serviceName={svc.name}
+                      maxRamMb={quota?.max_ram_mb ?? 0}
+                    />
+                  </div>
                 </CardContent>
               </Card>
             )
