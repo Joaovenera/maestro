@@ -71,25 +71,41 @@ func (h *HardwareCollector) collect(ctx context.Context) {
 		cpu, err := h.sentinel.GetLatestCPU(ctx, svc.CoolifyApplicationUUID, from)
 		if err != nil {
 			slog.Debug("hardware collector: cpu fetch", "service", svc.ID, "err", err)
-			continue
-		}
-		if cpu == nil {
-			continue
 		}
 
-		cpuPct, _ := strconv.ParseFloat(cpu.Percent, 64)
+		var metric *models.HardwareMetric
 
-		var ramMB int
-		mem, err := h.sentinel.GetLatestMemory(ctx, svc.CoolifyApplicationUUID, from)
-		if err == nil && mem != nil {
-			ramMB = int(mem.Used) // sentinel reports used in MB
-		}
-
-		metric := &models.HardwareMetric{
-			Time:      now,
-			ServiceID: svc.ID,
-			CPUPct:    cpuPct,
-			RAMMB:     ramMB,
+		if cpu != nil {
+			// Sentinel returned data — use it.
+			cpuPct, _ := strconv.ParseFloat(cpu.Percent, 64)
+			var ramMB int
+			if mem, err := h.sentinel.GetLatestMemory(ctx, svc.CoolifyApplicationUUID, from); err == nil && mem != nil {
+				ramMB = int(mem.Used)
+			}
+			metric = &models.HardwareMetric{
+				Time:      now,
+				ServiceID: svc.ID,
+				CPUPct:    cpuPct,
+				RAMMB:     ramMB,
+			}
+		} else {
+			// Sentinel returned nothing (known bug with hyphenated container names).
+			// Fall back to Docker Stats API via the host socket.
+			stats, err := dockerStats.GetMetrics(ctx, svc.CoolifyApplicationUUID)
+			if err != nil {
+				slog.Debug("hardware collector: docker stats fallback", "service", svc.ID, "err", err)
+				continue
+			}
+			metric = &models.HardwareMetric{
+				Time:        now,
+				ServiceID:   svc.ID,
+				CPUPct:      stats.CPUPct,
+				RAMMB:       stats.RAMMB,
+				NetRxKB:     stats.NetRxKB,
+				NetTxKB:     stats.NetTxKB,
+				DiskReadKB:  stats.DiskReadKB,
+				DiskWriteKB: stats.DiskWriteKB,
+			}
 		}
 		if err := h.metricsRepo.InsertHardware(ctx, metric); err != nil {
 			slog.Error("hardware collector: insert metric", "service_id", svc.ID, "err", err)
