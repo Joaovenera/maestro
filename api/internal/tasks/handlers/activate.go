@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
@@ -40,6 +41,10 @@ func (h *ActivateHandler) Handle(ctx context.Context, t *asynq.Task) error {
 
 	var lastErr error
 	for _, svc := range svcs {
+		if strings.Contains(svc.CoolifyApplicationUUID, "-") {
+			slog.Debug("activate: skipping infra service component", "service_id", svc.ID, "uuid", svc.CoolifyApplicationUUID)
+			continue
+		}
 		if err := h.coolify.StartApplication(ctx, svc.CoolifyApplicationUUID); err != nil {
 			slog.Error("start application failed", "service_id", svc.ID, "err", err)
 			lastErr = err

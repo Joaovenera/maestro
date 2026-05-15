@@ -9,15 +9,11 @@ import { useRouter } from "next/navigation"
 export function ClientActions({ clientId, status }: { clientId: string; status: ClientStatus }) {
   const [loading, setLoading] = useState<string | null>(null)
   const router = useRouter()
-  const apiKey = process.env.NEXT_PUBLIC_ADMIN_KEY ?? ""
 
   async function action(type: "suspend" | "activate") {
     setLoading(type)
     try {
-      await fetch(`/api/v1/clients/${clientId}/${type}`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      })
+      await fetch(`/api/clients/${clientId}/${type}`, { method: "POST" })
       setTimeout(() => router.refresh(), 800)
     } finally {
       setLoading(null)

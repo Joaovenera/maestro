@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
@@ -41,6 +42,13 @@ func (h *SuspendHandler) Handle(ctx context.Context, t *asynq.Task) error {
 	var lastErr error
 	for _, svc := range svcs {
 		if svc.Status == models.ServiceStatusStopped {
+			continue
+		}
+		// Service components (e.g. minio-wfxw8..., evolution-go-wfxw8...) have hyphens
+		// in their UUID field — they are not standalone Coolify applications and
+		// cannot be stopped via the /applications/:uuid/stop endpoint.
+		if strings.Contains(svc.CoolifyApplicationUUID, "-") {
+			slog.Debug("suspend: skipping infra service component", "service_id", svc.ID, "uuid", svc.CoolifyApplicationUUID)
 			continue
 		}
 		if err := h.coolify.StopApplication(ctx, svc.CoolifyApplicationUUID); err != nil {
