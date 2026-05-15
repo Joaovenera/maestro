@@ -180,10 +180,8 @@ export function HardwareChart({ serviceId, serviceName, maxRamMb }: HardwareChar
     try {
       const to = new Date()
       const from = new Date(to.getTime() - window.minutes * 60 * 1000)
-      const apiKey = process.env.NEXT_PUBLIC_ADMIN_KEY ?? ""
       const res = await fetch(
-        `/api/v1/metrics/hardware/${serviceId}?from=${from.toISOString()}&to=${to.toISOString()}`,
-        { headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : {} }
+        `/api/metrics/hardware/${serviceId}?from=${from.toISOString()}&to=${to.toISOString()}`
       )
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const json: HardwareMetric[] = await res.json()
