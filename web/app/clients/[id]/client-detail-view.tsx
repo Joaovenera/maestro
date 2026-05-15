@@ -37,8 +37,8 @@ function Avatar({ name }: { name: string }) {
   )
 }
 
-function KpiCard({ label, value, sub, icon: Icon, color = "text-zinc-700" }: {
-  label: string; value: string; sub?: string; icon: React.ElementType; color?: string
+function KpiCard({ label, value, sub, icon: Icon, color = "text-zinc-700", suppressHydration }: {
+  label: string; value: string; sub?: string; icon: React.ElementType; color?: string; suppressHydration?: boolean
 }) {
   return (
     <Card>
@@ -46,7 +46,7 @@ function KpiCard({ label, value, sub, icon: Icon, color = "text-zinc-700" }: {
         <div className="flex items-start justify-between">
           <div>
             <p className="text-xs text-zinc-500 font-medium">{label}</p>
-            <p className={`text-2xl font-bold mt-1 ${color}`}>{value}</p>
+            <p className={`text-2xl font-bold mt-1 ${color}`} suppressHydrationWarning={suppressHydration}>{value}</p>
             {sub && <p className="text-xs text-zinc-400 mt-0.5">{sub}</p>}
           </div>
           <div className="p-2 rounded-lg bg-zinc-100">
@@ -174,6 +174,7 @@ export function ClientDetailView({ client, services, domains, slaData, quota, de
           sub={lastDeploy ? lastDeploy.status : "sem histórico"}
           icon={Activity}
           color={lastDeploy?.status === "success" ? "text-green-600" : lastDeploy?.status === "failed" ? "text-red-600" : "text-zinc-500"}
+          suppressHydration
         />
       </div>
 
@@ -224,7 +225,7 @@ export function ClientDetailView({ client, services, domains, slaData, quota, de
                     </div>
                     <div>
                       <p className="text-xs text-zinc-400 mb-1">Último deploy</p>
-                      <p className="text-zinc-600 text-xs flex items-center gap-1">
+                      <p className="text-zinc-600 text-xs flex items-center gap-1" suppressHydrationWarning>
                         {lastSvcDeploy ? (
                           <>{relativeTime(lastSvcDeploy.created_at)} — <Badge variant="outline" className={`text-xs ${statusColor(lastSvcDeploy.status)}`}>{lastSvcDeploy.status}</Badge></>
                         ) : "—"}
@@ -348,8 +349,8 @@ export function ClientDetailView({ client, services, domains, slaData, quota, de
                           </span>
                         </td>
                         <td className="px-4 py-3 font-mono text-xs text-zinc-500">{dur}</td>
-                        <td className="px-4 py-3 text-zinc-400 text-xs">
-                          <div>{relativeTime(d.created_at)}</div>
+                        <td className="px-4 py-3 text-zinc-400 text-xs" suppressHydrationWarning>
+                          <div suppressHydrationWarning>{relativeTime(d.created_at)}</div>
                           <div className="text-zinc-300">{formatDate(d.created_at)}</div>
                         </td>
                       </tr>
