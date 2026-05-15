@@ -13,13 +13,24 @@ import (
 )
 
 type HardwareCollector struct {
+	sentinel    *coolify.SentinelClient
 	coolify     *coolify.Client
 	serviceRepo *repository.ServiceRepo
 	metricsRepo *repository.MetricsRepo
 }
 
-func NewHardwareCollector(c *coolify.Client, sr *repository.ServiceRepo, mr *repository.MetricsRepo) *HardwareCollector {
-	return &HardwareCollector{coolify: c, serviceRepo: sr, metricsRepo: mr}
+func NewHardwareCollector(
+	sentinel *coolify.SentinelClient,
+	c *coolify.Client,
+	sr *repository.ServiceRepo,
+	mr *repository.MetricsRepo,
+) *HardwareCollector {
+	return &HardwareCollector{
+		sentinel:    sentinel,
+		coolify:     c,
+		serviceRepo: sr,
+		metricsRepo: mr,
+	}
 }
 
 func (h *HardwareCollector) Run(ctx context.Context) {
@@ -36,59 +47,58 @@ func (h *HardwareCollector) Run(ctx context.Context) {
 }
 
 func (h *HardwareCollector) collect(ctx context.Context) {
+	if h.sentinel == nil {
+		slog.Debug("hardware collector: sentinel not configured, skipping")
+		return
+	}
+
 	svcs, err := h.serviceRepo.ListAll(ctx)
 	if err != nil {
 		slog.Error("hardware collector: list services", "err", err)
 		return
 	}
 
-	// Group by server to minimize Coolify API calls
-	byServer := make(map[string][]*models.Service)
-	for _, svc := range svcs {
-		if svc.CoolifyServerUUID != "" {
-			byServer[svc.CoolifyServerUUID] = append(byServer[svc.CoolifyServerUUID], svc)
-		}
-	}
+	// Ask sentinel for data from the last 30s to get the most recent sample.
+	from := time.Now().Add(-30 * time.Second)
+	now := time.Now()
+	matched := 0
 
-	for serverUUID, serverSvcs := range byServer {
-		resources, err := h.coolify.GetServerResources(ctx, serverUUID)
-		if err != nil {
-			slog.Error("get server resources", "server", serverUUID, "err", err)
+	for _, svc := range svcs {
+		if svc.CoolifyApplicationUUID == "" {
 			continue
 		}
 
-		// Map Coolify resource uuid → metric
-		resourceMap := make(map[string]coolify.Resource)
-		for _, r := range resources {
-			resourceMap[r.UUID] = r
+		cpu, err := h.sentinel.GetLatestCPU(ctx, svc.CoolifyApplicationUUID, from)
+		if err != nil {
+			slog.Debug("hardware collector: cpu fetch", "service", svc.ID, "err", err)
+			continue
+		}
+		if cpu == nil {
+			continue
 		}
 
-		now := time.Now()
-		for _, svc := range serverSvcs {
-			res, ok := resourceMap[svc.CoolifyApplicationUUID]
-			if !ok {
-				continue
-			}
+		cpuPct, _ := strconv.ParseFloat(cpu.Percent, 64)
 
-			// Update status if changed
-			newStatus := coolifyStatusToInternal(res.Status)
-			if newStatus != svc.Status {
-				_ = h.serviceRepo.UpdateStatus(ctx, svc.ID, newStatus)
-			}
-
-			// Coolify returns CPU/RAM as strings in resource list
-			// Parse best-effort from status field for now
-			metric := &models.HardwareMetric{
-				Time:      now,
-				ServiceID: svc.ID,
-				CPUPct:    parseCPU(res.Status),
-				RAMMB:     0,
-			}
-			if err := h.metricsRepo.InsertHardware(ctx, metric); err != nil {
-				slog.Error("insert hardware metric", "service_id", svc.ID, "err", err)
-			}
+		var ramMB int
+		mem, err := h.sentinel.GetLatestMemory(ctx, svc.CoolifyApplicationUUID, from)
+		if err == nil && mem != nil {
+			ramMB = int(mem.Used) // sentinel reports used in MB
 		}
+
+		metric := &models.HardwareMetric{
+			Time:      now,
+			ServiceID: svc.ID,
+			CPUPct:    cpuPct,
+			RAMMB:     ramMB,
+		}
+		if err := h.metricsRepo.InsertHardware(ctx, metric); err != nil {
+			slog.Error("hardware collector: insert metric", "service_id", svc.ID, "err", err)
+			continue
+		}
+		matched++
 	}
+
+	slog.Debug("hardware collector: cycle complete", "services", len(svcs), "matched", matched)
 }
 
 func coolifyStatusToInternal(status string) models.ServiceStatus {
@@ -103,17 +113,4 @@ func coolifyStatusToInternal(status string) models.ServiceStatus {
 	default:
 		return models.ServiceStatusUnknown
 	}
-}
-
-func parseCPU(status string) float64 {
-	// Status may contain CPU% in some Coolify versions
-	if idx := strings.Index(status, "cpu:"); idx >= 0 {
-		rest := status[idx+4:]
-		rest = strings.TrimSpace(strings.Split(rest, " ")[0])
-		rest = strings.TrimSuffix(rest, "%")
-		if v, err := strconv.ParseFloat(rest, 64); err == nil {
-			return v
-		}
-	}
-	return 0
 }

@@ -42,6 +42,14 @@ func main() {
 
 	coolifyClient := coolify.New(cfg.CoolifyBaseURL, cfg.CoolifyAPIKey)
 
+	var sentinelClient *coolify.SentinelClient
+	if cfg.SentinelBaseURL != "" {
+		sentinelClient = coolify.NewSentinelClient(cfg.SentinelBaseURL, cfg.SentinelToken)
+		slog.Info("sentinel configured", "url", cfg.SentinelBaseURL)
+	} else {
+		slog.Warn("SENTINEL_BASE_URL not set — hardware metrics collection disabled")
+	}
+
 	// Repos
 	serviceRepo := repository.NewServiceRepo(pool)
 	domainRepo := repository.NewDomainRepo(pool)
@@ -83,7 +91,7 @@ func main() {
 	}
 
 	// Background workers
-	go workers.NewHardwareCollector(coolifyClient, serviceRepo, metricsRepo).Run(ctx)
+	go workers.NewHardwareCollector(sentinelClient, coolifyClient, serviceRepo, metricsRepo).Run(ctx)
 	go workers.NewUptimeChecker(domainRepo, metricsRepo).Run(ctx)
 	go workers.NewStatusSyncer(coolifyClient, serviceRepo).Run(ctx)
 

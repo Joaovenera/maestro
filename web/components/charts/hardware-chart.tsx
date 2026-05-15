@@ -12,7 +12,7 @@ import {
   Legend,
   ReferenceLine,
 } from "recharts"
-import { Cpu, MemoryStick, Wifi, RefreshCw, AlertCircle } from "lucide-react"
+import { Cpu, MemoryStick, Wifi, HardDrive, RefreshCw, AlertCircle } from "lucide-react"
 import type { HardwareMetric } from "@/lib/api"
 
 // ── Time windows ──────────────────────────────────────────────────────────────
@@ -200,25 +200,31 @@ export function HardwareChart({ serviceId, serviceName, maxRamMb }: HardwareChar
 
   // ── Derived stats ──────────────────────────────────────────────────────────
 
-  const cpuValues  = data.map((d) => d.cpu_pct)
-  const ramValues  = data.map((d) => d.ram_mb)
-  const rxValues   = data.map((d) => d.net_rx_kb)
-  const txValues   = data.map((d) => d.net_tx_kb)
+  const cpuValues   = data.map((d) => d.cpu_pct)
+  const ramValues   = data.map((d) => d.ram_mb)
+  const rxValues    = data.map((d) => d.net_rx_kb)
+  const txValues    = data.map((d) => d.net_tx_kb)
+  const diskRValues = data.map((d) => d.disk_read_kb)
+  const diskWValues = data.map((d) => d.disk_write_kb)
 
-  const avgCpu  = avg(cpuValues)
-  const peakCpu = peak(cpuValues)
-  const avgRam  = avg(ramValues)
-  const peakRam = peak(ramValues)
-  const avgRx   = avg(rxValues)
-  const avgTx   = avg(txValues)
+  const avgCpu   = avg(cpuValues)
+  const peakCpu  = peak(cpuValues)
+  const avgRam   = avg(ramValues)
+  const peakRam  = peak(ramValues)
+  const avgRx    = avg(rxValues)
+  const avgTx    = avg(txValues)
+  const avgDiskR = avg(diskRValues)
+  const avgDiskW = avg(diskWValues)
 
   // Recharts needs plain objects with known keys
   const chartData = data.map((d) => ({
-    time:      d.time,
-    cpu_pct:   +d.cpu_pct.toFixed(2),
-    ram_mb:    +d.ram_mb.toFixed(1),
-    net_rx_kb: +d.net_rx_kb.toFixed(1),
-    net_tx_kb: +d.net_tx_kb.toFixed(1),
+    time:          d.time,
+    cpu_pct:       +d.cpu_pct.toFixed(2),
+    ram_mb:        +d.ram_mb.toFixed(1),
+    net_rx_kb:     +d.net_rx_kb.toFixed(1),
+    net_tx_kb:     +d.net_tx_kb.toFixed(1),
+    disk_read_kb:  +d.disk_read_kb.toFixed(1),
+    disk_write_kb: +d.disk_write_kb.toFixed(1),
   }))
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -288,8 +294,10 @@ export function HardwareChart({ serviceId, serviceName, maxRamMb }: HardwareChar
             <StatPill label="CPU pico"   value={`${peakCpu.toFixed(1)}%`} color={peakCpu > 90 ? "text-red-600" : "text-zinc-700"} />
             <StatPill label="RAM média"  value={`${avgRam.toFixed(0)} MB`} color="text-indigo-600" />
             <StatPill label="RAM pico"   value={`${peakRam.toFixed(0)} MB`} color="text-zinc-700" />
-            <StatPill label="RX médio"   value={`${avgRx.toFixed(0)} KB/s`} color="text-cyan-600" />
-            <StatPill label="TX médio"   value={`${avgTx.toFixed(0)} KB/s`} color="text-violet-600" />
+            <StatPill label="RX médio"    value={`${avgRx.toFixed(0)} KB/s`}    color="text-cyan-600" />
+            <StatPill label="TX médio"    value={`${avgTx.toFixed(0)} KB/s`}    color="text-violet-600" />
+            <StatPill label="Disco leit." value={`${avgDiskR.toFixed(0)} KB/s`} color="text-emerald-600" />
+            <StatPill label="Disco escr." value={`${avgDiskW.toFixed(0)} KB/s`} color="text-amber-600" />
             {lastFetched && (
               <span className="ml-auto self-center text-xs text-zinc-300 font-mono">
                 atualizado {lastFetched.toLocaleTimeString("pt-BR")}
@@ -332,7 +340,7 @@ export function HardwareChart({ serviceId, serviceName, maxRamMb }: HardwareChar
           </div>
 
           {/* Network chart */}
-          <div className="px-5 pt-4 pb-5">
+          <div className="px-5 pt-4">
             <div className="flex items-center gap-2 mb-3">
               <Wifi className="w-3.5 h-3.5 text-cyan-400" />
               <span className="text-xs font-semibold text-zinc-600 uppercase tracking-wide">Rede</span>
@@ -344,6 +352,24 @@ export function HardwareChart({ serviceId, serviceName, maxRamMb }: HardwareChar
               dataKeys={[
                 { key: "net_rx_kb", name: "RX (download)", color: "#06b6d4", unit: " KB/s" },
                 { key: "net_tx_kb", name: "TX (upload)",   color: "#8b5cf6", unit: " KB/s" },
+              ]}
+              height={130}
+            />
+          </div>
+
+          {/* Disk chart */}
+          <div className="px-5 pt-4 pb-5">
+            <div className="flex items-center gap-2 mb-3">
+              <HardDrive className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-xs font-semibold text-zinc-600 uppercase tracking-wide">Disco</span>
+              <span className="text-xs text-zinc-400">(KB/s)</span>
+            </div>
+            <MetricArea
+              data={chartData}
+              minutes={window.minutes}
+              dataKeys={[
+                { key: "disk_read_kb",  name: "Leitura",  color: "#10b981", unit: " KB/s" },
+                { key: "disk_write_kb", name: "Escrita",   color: "#f59e0b", unit: " KB/s" },
               ]}
               height={130}
             />

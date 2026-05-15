@@ -19,9 +19,9 @@ func NewMetricsRepo(db *pgxpool.Pool) *MetricsRepo {
 
 func (r *MetricsRepo) InsertHardware(ctx context.Context, m *models.HardwareMetric) error {
 	_, err := r.db.Exec(ctx,
-		`INSERT INTO hardware_metrics (time, service_id, cpu_pct, ram_mb, net_rx_kb, net_tx_kb)
-		 VALUES ($1, $2, $3, $4, $5, $6)`,
-		m.Time, m.ServiceID, m.CPUPct, m.RAMMB, m.NetRxKB, m.NetTxKB)
+		`INSERT INTO hardware_metrics (time, service_id, cpu_pct, ram_mb, net_rx_kb, net_tx_kb, disk_read_kb, disk_write_kb)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+		m.Time, m.ServiceID, m.CPUPct, m.RAMMB, m.NetRxKB, m.NetTxKB, m.DiskReadKB, m.DiskWriteKB)
 	return err
 }
 
@@ -35,7 +35,7 @@ func (r *MetricsRepo) InsertUptime(ctx context.Context, u *models.UptimeRecord) 
 
 func (r *MetricsRepo) GetHardwareTimeline(ctx context.Context, serviceID uuid.UUID, from, to time.Time) ([]*models.HardwareMetric, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT time, service_id, cpu_pct, ram_mb, net_rx_kb, net_tx_kb
+		SELECT time, service_id, cpu_pct, ram_mb, net_rx_kb, net_tx_kb, disk_read_kb, disk_write_kb
 		FROM hardware_metrics
 		WHERE service_id=$1 AND time BETWEEN $2 AND $3
 		ORDER BY time`, serviceID, from, to)
@@ -47,7 +47,7 @@ func (r *MetricsRepo) GetHardwareTimeline(ctx context.Context, serviceID uuid.UU
 	var metrics []*models.HardwareMetric
 	for rows.Next() {
 		m := &models.HardwareMetric{}
-		if err := rows.Scan(&m.Time, &m.ServiceID, &m.CPUPct, &m.RAMMB, &m.NetRxKB, &m.NetTxKB); err != nil {
+		if err := rows.Scan(&m.Time, &m.ServiceID, &m.CPUPct, &m.RAMMB, &m.NetRxKB, &m.NetTxKB, &m.DiskReadKB, &m.DiskWriteKB); err != nil {
 			return nil, err
 		}
 		metrics = append(metrics, m)

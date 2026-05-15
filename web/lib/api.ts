@@ -106,6 +106,8 @@ export interface HardwareMetric {
   ram_mb: number
   net_rx_kb: number
   net_tx_kb: number
+  disk_read_kb: number
+  disk_write_kb: number
 }
 
 // ── API calls ────────────────────────────────────────────────────────────────
