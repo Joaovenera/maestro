@@ -71,11 +71,15 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          # GHCR_TOKEN passado via envs — disponível como $GHCR_TOKEN no script
+          envs: GHCR_TOKEN
           script: |
-            echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u joaovenera --password-stdin
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u joaovenera --password-stdin
             docker pull ghcr.io/joaovenera/maestro-api:latest
             docker pull ghcr.io/joaovenera/maestro-worker:latest
             docker pull ghcr.io/joaovenera/maestro-web:latest
+        env:
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
 
       - name: Restart Maestro service
         uses: appleboy/ssh-action@v1.0.3
