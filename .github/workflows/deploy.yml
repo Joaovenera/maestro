@@ -65,35 +65,32 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - name: Pull new images on server
+      - name: Pull and redeploy via Coolify
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
-          # GHCR_TOKEN passado via envs — disponível como $GHCR_TOKEN no script
-          envs: GHCR_TOKEN
+          envs: GHCR_TOKEN,COOLIFY_API_KEY
           script: |
             echo "$GHCR_TOKEN" | docker login ghcr.io -u joaovenera --password-stdin
             docker pull ghcr.io/joaovenera/maestro-api:latest
             docker pull ghcr.io/joaovenera/maestro-worker:latest
             docker pull ghcr.io/joaovenera/maestro-web:latest
+
+            # Recriar apenas os containers da aplicação (projeto Coolify vtp9khsw33hp1a3ph6x3swi7)
+            docker run --rm \
+              -v /data/coolify/services/vtp9khsw33hp1a3ph6x3swi7:/compose:ro \
+              -v /var/run/docker.sock:/var/run/docker.sock \
+              docker:cli \
+              docker compose \
+              -p vtp9khsw33hp1a3ph6x3swi7 \
+              -f /compose/docker-compose.yml \
+              up -d --force-recreate \
+              maestro-api maestro-worker maestro-web
         env:
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
-
-      - name: Restart Maestro service
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
-          script: |
-            cd /opt/venerahost/maestro
-            docker compose -f docker-compose.coolify.yml \
-              --env-file .env \
-              --project-name maestro-prod \
-              up -d --pull never --force-recreate \
-              maestro-api maestro-worker maestro-web
+          COOLIFY_API_KEY: ${{ secrets.COOLIFY_API_KEY }}
 
       - name: Health check
         run: |
