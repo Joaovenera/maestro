@@ -1,0 +1,7 @@
+Dockerfile.api
+Dockerfile.worker
+.dockerignore
+.git
+.env
+.env.*
+Makefile

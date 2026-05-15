@@ -1,0 +1,72 @@
+# Compose de produção gerenciado pelo Coolify.
+# Imagens publicadas no GHCR pelo CI/CD (GitHub Actions).
+# Para atualizar: push para branch main → workflow builda + pusha + restarta.
+
+services:
+  maestro-api:
+    image: ghcr.io/joaovenera/maestro-api:latest
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      COOLIFY_BASE_URL: ${COOLIFY_BASE_URL}
+      COOLIFY_API_KEY: ${COOLIFY_API_KEY}
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET}
+      API_PORT: "3001"
+    networks:
+      - default
+      - coolify
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "cat /proc/1/status > /dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  maestro-worker:
+    image: ghcr.io/joaovenera/maestro-worker:latest
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      COOLIFY_BASE_URL: ${COOLIFY_BASE_URL}
+      COOLIFY_API_KEY: ${COOLIFY_API_KEY}
+    networks:
+      - default
+      - coolify
+    restart: unless-stopped
+    depends_on:
+      maestro-api:
+        condition: service_healthy
+
+  maestro-web:
+    image: ghcr.io/joaovenera/maestro-web:latest
+    environment:
+      API_URL: http://maestro-api:3001
+      MAESTRO_API_KEY: ${MAESTRO_API_KEY}
+      NEXT_PUBLIC_ADMIN_KEY: ${NEXT_PUBLIC_ADMIN_KEY}
+    networks:
+      - default
+      - coolify
+    restart: unless-stopped
+    depends_on:
+      - maestro-api
+    labels:
+      caddy: painel.venerahost.meatende.cloud
+      caddy.reverse_proxy: "{{upstreams 3000}}"
+
+  asynqmon:
+    image: hibiken/asynqmon:latest
+    environment:
+      REDIS_URL: ${REDIS_URL}
+    networks:
+      - default
+      - coolify
+    restart: unless-stopped
+    labels:
+      caddy: asynqmon.venerahost.meatende.cloud
+      caddy.reverse_proxy: "{{upstreams 8080}}"
+
+networks:
+  default:
+    name: maestro-prod
+  coolify:
+    external: true

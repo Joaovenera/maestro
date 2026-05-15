@@ -1,0 +1,20 @@
+# Env — nunca commitar
+.env
+.env.local
+api/.env.example
+
+# Binários Go
+api/bin/
+
+# Next.js
+web/.next/
+web/node_modules/
+web/.env.local
+
+# Docker
+maestro-prod/
+
+# IDE
+.idea/
+.vscode/
+*.swp

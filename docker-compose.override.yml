@@ -1,0 +1,61 @@
+# Override para desenvolvimento local (sem Coolify)
+services:
+  postgres-local:
+    image: timescale/timescaledb:latest-pg16
+    environment:
+      POSTGRES_DB: maestro
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: local_dev_password
+    volumes:
+      - postgres_local_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - maestro
+
+  redis-local:
+    image: redis:7-alpine
+    volumes:
+      - redis_local_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - maestro
+
+  maestro-api:
+    environment:
+      DATABASE_URL: postgres://postgres:local_dev_password@postgres-local:5432/maestro
+      REDIS_URL: redis://redis-local:6379
+    depends_on:
+      postgres-local:
+        condition: service_healthy
+      redis-local:
+        condition: service_healthy
+
+  maestro-worker:
+    environment:
+      DATABASE_URL: postgres://postgres:local_dev_password@postgres-local:5432/maestro
+      REDIS_URL: redis://redis-local:6379
+    depends_on:
+      postgres-local:
+        condition: service_healthy
+      redis-local:
+        condition: service_healthy
+
+  asynqmon:
+    environment:
+      REDIS_URL: redis://redis-local:6379
+
+volumes:
+  postgres_local_data:
+  redis_local_data:

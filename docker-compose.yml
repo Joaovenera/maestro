@@ -1,0 +1,69 @@
+services:
+  maestro-api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile.api
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      COOLIFY_BASE_URL: ${COOLIFY_BASE_URL}
+      COOLIFY_API_KEY: ${COOLIFY_API_KEY}
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET}
+      API_PORT: ${API_PORT:-3001}
+    ports:
+      - "${API_PORT:-3001}:${API_PORT:-3001}"
+    networks:
+      - maestro
+      - coolify
+    restart: unless-stopped
+
+  maestro-worker:
+    build:
+      context: ./api
+      dockerfile: Dockerfile.worker
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      COOLIFY_BASE_URL: ${COOLIFY_BASE_URL}
+      COOLIFY_API_KEY: ${COOLIFY_API_KEY}
+    networks:
+      - maestro
+      - coolify
+    restart: unless-stopped
+
+  maestro-web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+      args:
+        API_URL: http://maestro-api:3001
+        MAESTRO_API_KEY: ${MAESTRO_API_KEY}
+        NEXT_PUBLIC_ADMIN_KEY: ${NEXT_PUBLIC_ADMIN_KEY}
+    environment:
+      API_URL: http://maestro-api:3001
+      MAESTRO_API_KEY: ${MAESTRO_API_KEY}
+      NEXT_PUBLIC_ADMIN_KEY: ${NEXT_PUBLIC_ADMIN_KEY}
+    ports:
+      - "3000:3000"
+    networks:
+      - maestro
+    depends_on:
+      - maestro-api
+    restart: unless-stopped
+
+  asynqmon:
+    image: hibiken/asynqmon:latest
+    environment:
+      REDIS_URL: ${REDIS_URL}
+    ports:
+      - "8080:8080"
+    networks:
+      - maestro
+      - coolify
+    restart: unless-stopped
+
+networks:
+  maestro:
+    driver: bridge
+  coolify:
+    external: true
