@@ -99,6 +99,6 @@ jobs:
         run: |
           sleep 20
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            https://painel.venerahost.meatende.cloud/health)
+            https://painel.venerahost.meatende.cloud/dashboard)
           echo "Health: $STATUS"
           [ "$STATUS" = "200" ] && echo "OK" || (echo "FAILED" && exit 1)
