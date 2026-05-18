@@ -23,7 +23,7 @@ func (r *DeployRepo) Create(ctx context.Context, serviceID uuid.UUID, triggeredB
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO deploy_history (service_id, triggered_by)
 		VALUES ($1, $2)
-		RETURNING id, service_id, coolify_deploy_uuid, triggered_by, status, started_at, finished_at, log_snippet, created_at`,
+		RETURNING id, service_id, COALESCE(coolify_deploy_uuid,''), triggered_by, status, started_at, finished_at, COALESCE(log_snippet,''), created_at`,
 		serviceID, triggeredBy,
 	).Scan(&d.ID, &d.ServiceID, &d.CoolifyDeployUUID, &d.TriggeredBy, &d.Status, &d.StartedAt, &d.FinishedAt, &d.LogSnippet, &d.CreatedAt)
 	return d, err
@@ -57,7 +57,7 @@ func (r *DeployRepo) UpdateStatusByCoolifyUUID(ctx context.Context, coolifyUUID 
 func (r *DeployRepo) GetByID(ctx context.Context, id uuid.UUID) (*models.DeployHistory, error) {
 	d := &models.DeployHistory{}
 	err := r.db.QueryRow(ctx, `
-		SELECT id, service_id, coolify_deploy_uuid, triggered_by, status, started_at, finished_at, log_snippet, created_at
+		SELECT id, service_id, COALESCE(coolify_deploy_uuid,''), triggered_by, status, started_at, finished_at, COALESCE(log_snippet,''), created_at
 		FROM deploy_history WHERE id=$1`, id,
 	).Scan(&d.ID, &d.ServiceID, &d.CoolifyDeployUUID, &d.TriggeredBy, &d.Status, &d.StartedAt, &d.FinishedAt, &d.LogSnippet, &d.CreatedAt)
 	return d, err
@@ -65,7 +65,7 @@ func (r *DeployRepo) GetByID(ctx context.Context, id uuid.UUID) (*models.DeployH
 
 func (r *DeployRepo) ListByService(ctx context.Context, serviceID uuid.UUID, limit, offset int) ([]*models.DeployHistory, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, service_id, coolify_deploy_uuid, triggered_by, status, started_at, finished_at, log_snippet, created_at
+		SELECT id, service_id, COALESCE(coolify_deploy_uuid,''), triggered_by, status, started_at, finished_at, COALESCE(log_snippet,''), created_at
 		FROM deploy_history WHERE service_id=$1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
 		serviceID, limit, offset)
 	if err != nil {
