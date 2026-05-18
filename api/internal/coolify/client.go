@@ -46,6 +46,19 @@ type Application struct {
 	FQDN   string `json:"fqdn"`
 }
 
+type Deployment struct {
+	UUID   string `json:"deployment_uuid"`
+	Status string `json:"status"` // queued | in_progress | finished | failed | cancelled
+}
+
+func (c *Client) GetDeployment(ctx context.Context, deploymentUUID string) (*Deployment, error) {
+	var d Deployment
+	if err := c.do(ctx, http.MethodGet, "/deployments/"+deploymentUUID, nil, &d); err != nil {
+		return nil, err
+	}
+	return &d, nil
+}
+
 func (c *Client) StartApplication(ctx context.Context, uuid string) error {
 	return c.do(ctx, http.MethodPost, "/applications/"+uuid+"/start", nil, nil)
 }
