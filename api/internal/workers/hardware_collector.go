@@ -3,6 +3,7 @@ package workers
 import (
 	"context"
 	"log/slog"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -78,6 +79,9 @@ func (h *HardwareCollector) collect(ctx context.Context) {
 		if cpu != nil {
 			// Sentinel returned data — use it.
 			cpuPct, _ := strconv.ParseFloat(cpu.Percent, 64)
+			if math.IsNaN(cpuPct) || math.IsInf(cpuPct, 0) {
+				cpuPct = 0
+			}
 			var ramMB int
 			if mem, err := h.sentinel.GetLatestMemory(ctx, svc.CoolifyApplicationUUID, from); err == nil && mem != nil {
 				ramMB = int(mem.Used)
