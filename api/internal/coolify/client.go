@@ -89,7 +89,7 @@ func (c *Client) Deploy(ctx context.Context, uuid string, force bool) (*DeployRe
 }
 
 func (c *Client) UpdateApplicationFQDN(ctx context.Context, uuid, fqdn string) error {
-	body := map[string]string{"fqdn": fqdn}
+	body := map[string]string{"domains": fqdn}
 	return c.do(ctx, http.MethodPatch, "/applications/"+uuid, body, nil)
 }
 
