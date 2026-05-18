@@ -32,7 +32,7 @@ func (r *ServiceRepo) Create(ctx context.Context, clientID uuid.UUID, name, svcT
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO services (client_id, name, type, coolify_application_uuid, coolify_server_uuid)
 		VALUES ($1, $2, $3, $4, $5)
-		RETURNING id, client_id, name, type, coolify_application_uuid, coolify_server_uuid, status, created_at, updated_at`,
+		RETURNING id, client_id, name, type, coolify_application_uuid, COALESCE(coolify_server_uuid,''), status, created_at, updated_at`,
 		clientID, name, svcType, coolifyUUID, serverUUID,
 	).Scan(&s.ID, &s.ClientID, &s.Name, &s.Type, &s.CoolifyApplicationUUID, &s.CoolifyServerUUID, &s.Status, &s.CreatedAt, &s.UpdatedAt)
 	return s, err
@@ -41,7 +41,7 @@ func (r *ServiceRepo) Create(ctx context.Context, clientID uuid.UUID, name, svcT
 func (r *ServiceRepo) GetByID(ctx context.Context, id uuid.UUID) (*models.Service, error) {
 	s := &models.Service{}
 	err := r.db.QueryRow(ctx, `
-		SELECT id, client_id, name, type, coolify_application_uuid, coolify_server_uuid, status, created_at, updated_at
+		SELECT id, client_id, name, type, coolify_application_uuid, COALESCE(coolify_server_uuid,''), status, created_at, updated_at
 		FROM services WHERE id = $1`, id,
 	).Scan(&s.ID, &s.ClientID, &s.Name, &s.Type, &s.CoolifyApplicationUUID, &s.CoolifyServerUUID, &s.Status, &s.CreatedAt, &s.UpdatedAt)
 	return s, err
@@ -50,7 +50,7 @@ func (r *ServiceRepo) GetByID(ctx context.Context, id uuid.UUID) (*models.Servic
 func (r *ServiceRepo) GetByCoolifyUUID(ctx context.Context, coolifyUUID string) (*models.Service, error) {
 	s := &models.Service{}
 	err := r.db.QueryRow(ctx, `
-		SELECT id, client_id, name, type, coolify_application_uuid, coolify_server_uuid, status, created_at, updated_at
+		SELECT id, client_id, name, type, coolify_application_uuid, COALESCE(coolify_server_uuid,''), status, created_at, updated_at
 		FROM services WHERE coolify_application_uuid = $1`, coolifyUUID,
 	).Scan(&s.ID, &s.ClientID, &s.Name, &s.Type, &s.CoolifyApplicationUUID, &s.CoolifyServerUUID, &s.Status, &s.CreatedAt, &s.UpdatedAt)
 	return s, err
@@ -58,7 +58,7 @@ func (r *ServiceRepo) GetByCoolifyUUID(ctx context.Context, coolifyUUID string) 
 
 func (r *ServiceRepo) ListByClient(ctx context.Context, clientID uuid.UUID) ([]*models.Service, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, client_id, name, type, coolify_application_uuid, coolify_server_uuid, status, created_at, updated_at
+		SELECT id, client_id, name, type, coolify_application_uuid, COALESCE(coolify_server_uuid,''), status, created_at, updated_at
 		FROM services WHERE client_id = $1 ORDER BY created_at`, clientID)
 	if err != nil {
 		return nil, err
@@ -78,7 +78,7 @@ func (r *ServiceRepo) ListByClient(ctx context.Context, clientID uuid.UUID) ([]*
 
 func (r *ServiceRepo) ListAll(ctx context.Context) ([]*models.Service, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, client_id, name, type, coolify_application_uuid, coolify_server_uuid, status, created_at, updated_at
+		SELECT id, client_id, name, type, coolify_application_uuid, COALESCE(coolify_server_uuid,''), status, created_at, updated_at
 		FROM services ORDER BY created_at`)
 	if err != nil {
 		return nil, err
