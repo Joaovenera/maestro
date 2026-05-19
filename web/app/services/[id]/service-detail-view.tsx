@@ -6,11 +6,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { statusColor, formatDate, relativeTime } from "@/lib/utils"
 import { ServiceActions } from "@/app/clients/[id]/service-actions"
 import { HardwareChart } from "@/components/charts/hardware-chart"
+import { ScheduledDeploysPanel } from "@/components/scheduled-deploys-panel"
 import Link from "next/link"
 import {
   ArrowLeft, Globe, Cpu, Clock, CheckCircle2, XCircle,
   Loader2, Server, ShieldCheck, Activity, AlertTriangle,
-  Hash, Calendar, User, Copy, ExternalLink, Circle,
+  Hash, Calendar, User, Copy, ExternalLink, Circle, CalendarClock,
 } from "lucide-react"
 import type { Client, Service, Domain, DeployHistory, UptimeSLA } from "@/lib/api"
 import { useState } from "react"
@@ -237,7 +238,8 @@ export function ServiceDetailView({ service, client, domains, deploys, serviceSl
           <TabsTrigger value="metrics"  className="gap-1.5"><Cpu className="w-3.5 h-3.5" />Métricas</TabsTrigger>
           <TabsTrigger value="deploys"  className="gap-1.5"><Activity className="w-3.5 h-3.5" />Deploys ({deploys.length})</TabsTrigger>
           <TabsTrigger value="domains"  className="gap-1.5"><Globe className="w-3.5 h-3.5" />Domínios ({domains.length})</TabsTrigger>
-          <TabsTrigger value="sla"      className="gap-1.5"><ShieldCheck className="w-3.5 h-3.5" />SLA / Uptime</TabsTrigger>
+          <TabsTrigger value="sla"       className="gap-1.5"><ShieldCheck className="w-3.5 h-3.5" />SLA / Uptime</TabsTrigger>
+          <TabsTrigger value="schedule" className="gap-1.5"><CalendarClock className="w-3.5 h-3.5" />Agendamentos</TabsTrigger>
           <TabsTrigger value="info"     className="gap-1.5"><Hash className="w-3.5 h-3.5" />Informações</TabsTrigger>
         </TabsList>
 
@@ -397,6 +399,11 @@ export function ServiceDetailView({ service, client, domains, deploys, serviceSl
               ))}
             </div>
           )}
+        </TabsContent>
+
+        {/* ── Agendamentos ── */}
+        <TabsContent value="schedule" className="mt-4">
+          <ScheduledDeploysPanel serviceId={service.id} />
         </TabsContent>
 
         {/* ── Informações ── */}

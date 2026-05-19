@@ -3,7 +3,8 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { statusColor, formatDate } from "@/lib/utils"
 import Link from "next/link"
-import { Users, ArrowRight, PlusCircle } from "lucide-react"
+import { Users, ArrowRight } from "lucide-react"
+import { NewClientButton } from "@/components/new-client-button"
 
 export const dynamic = 'force-dynamic'
 
@@ -35,10 +36,7 @@ export default async function ClientsPage() {
           </h1>
           <p className="text-zinc-500 text-sm mt-1">{clients.length} cliente{clients.length !== 1 ? "s" : ""} cadastrado{clients.length !== 1 ? "s" : ""}</p>
         </div>
-        <button className="flex items-center gap-2 text-sm bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
-          <PlusCircle className="w-4 h-4" />
-          Novo cliente
-        </button>
+        <NewClientButton />
       </div>
 
       <div className="grid gap-4">
@@ -93,7 +91,7 @@ export default async function ClientsPage() {
           <div className="text-center py-16 text-zinc-400">
             <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />
             <p className="font-medium">Nenhum cliente cadastrado</p>
-            <p className="text-sm mt-1">Use a API para criar o primeiro cliente.</p>
+            <p className="text-sm mt-1">Clique em "Novo cliente" para começar.</p>
           </div>
         )}
       </div>

@@ -132,3 +132,36 @@ func (h *DomainHandler) Unassign(c echo.Context) error {
 	}
 	return c.JSON(http.StatusOK, map[string]string{"status": "unassigned"})
 }
+
+// PATCH /api/v1/domains/:id/primary — marca domínio como primário do cliente
+func (h *DomainHandler) SetPrimary(c echo.Context) error {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+	}
+	d, err := h.domainRepo.SetPrimary(c.Request().Context(), id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(http.StatusOK, d)
+}
+
+// POST /api/v1/domains/:id/sync — força sync do FQDN no Coolify para o serviço do domínio
+func (h *DomainHandler) Sync(c echo.Context) error {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+	}
+	ctx := c.Request().Context()
+	d, err := h.domainRepo.GetByID(ctx, id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "domain not found")
+	}
+	if d.ServiceID == nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "domain has no assigned service")
+	}
+	if err := h.enqueuer.SyncDomain(ctx, d.ServiceID.String()); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "enqueue failed: "+err.Error())
+	}
+	return c.JSON(http.StatusAccepted, map[string]string{"status": "sync enqueued", "service_id": d.ServiceID.String()})
+}

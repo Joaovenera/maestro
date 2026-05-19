@@ -2,14 +2,15 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Users, Globe, ListOrdered, Server } from "lucide-react"
+import { LayoutDashboard, Users, Globe, ListOrdered, Server, KeyRound } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const nav = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/clients",   label: "Clientes",  icon: Users },
-  { href: "/domains",   label: "Domínios",  icon: Globe },
-  { href: "/deploys",   label: "Deploys",   icon: ListOrdered },
+  { href: "/dashboard",      label: "Dashboard", icon: LayoutDashboard },
+  { href: "/clients",        label: "Clientes",  icon: Users },
+  { href: "/domains",        label: "Domínios",  icon: Globe },
+  { href: "/deploys",        label: "Deploys",   icon: ListOrdered },
+  { href: "/admin/api-keys", label: "API Keys",  icon: KeyRound },
 ]
 
 export function Sidebar() {
