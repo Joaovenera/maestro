@@ -87,7 +87,14 @@ export interface DeployHistory {
   status: DeployStatus
   started_at?: string
   finished_at?: string
+  log_snippet?: string
   created_at: string
+}
+
+export interface DeployWithContext extends DeployHistory {
+  service_name: string
+  client_id: string
+  client_name: string
 }
 
 export interface UptimeSLA {
@@ -108,6 +115,27 @@ export interface HardwareMetric {
   net_tx_kb: number
   disk_read_kb: number
   disk_write_kb: number
+}
+
+export interface ScheduledDeploy {
+  id: string
+  service_id: string
+  cron_expr: string
+  force: boolean
+  enabled: boolean
+  last_run_at?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface APIKey {
+  id: string
+  name: string
+  key_prefix: string
+  permissions: string
+  last_used_at?: string
+  expires_at?: string
+  created_at: string
 }
 
 // ── API calls ────────────────────────────────────────────────────────────────
@@ -145,6 +173,30 @@ export const api = {
   domains: {
     list: (clientId: string) =>
       request<Domain[]>(`/api/v1/domains?client_id=${clientId}`).then((r) => r ?? []),
+  },
+
+  admin: {
+    apiKeys: {
+      list: () => request<APIKey[]>("/api/v1/admin/api-keys").then((r) => r ?? []),
+      create: (name: string, permissions: string, expiresInDays?: number) =>
+        request<{ key: string; id: string; name: string; prefix: string; note: string }>(
+          "/api/v1/admin/api-keys",
+          { method: "POST", body: JSON.stringify({ name, permissions, expires_in_days: expiresInDays ?? 0 }) }
+        ),
+      revoke: (id: string) =>
+        request(`/api/v1/admin/api-keys/${id}`, { method: "DELETE" }),
+    },
+  },
+
+  deploys: {
+    list: (params?: { status?: string; limit?: number; offset?: number }) => {
+      const q = new URLSearchParams()
+      if (params?.status) q.set("status", params.status)
+      if (params?.limit)  q.set("limit",  String(params.limit))
+      if (params?.offset) q.set("offset", String(params.offset))
+      const qs = q.toString()
+      return request<DeployWithContext[]>(`/api/v1/deploys${qs ? `?${qs}` : ""}`).then((r) => r ?? [])
+    },
   },
 
   metrics: {

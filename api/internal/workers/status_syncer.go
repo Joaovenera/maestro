@@ -12,10 +12,12 @@ import (
 type StatusSyncer struct {
 	coolify     *coolify.Client
 	serviceRepo *repository.ServiceRepo
+	deployRepo  *repository.DeployRepo
+	reconcileTick int
 }
 
-func NewStatusSyncer(c *coolify.Client, sr *repository.ServiceRepo) *StatusSyncer {
-	return &StatusSyncer{coolify: c, serviceRepo: sr}
+func NewStatusSyncer(c *coolify.Client, sr *repository.ServiceRepo, dr *repository.DeployRepo) *StatusSyncer {
+	return &StatusSyncer{coolify: c, serviceRepo: sr, deployRepo: dr}
 }
 
 func (s *StatusSyncer) Run(ctx context.Context) {
@@ -47,6 +49,17 @@ func (s *StatusSyncer) sync(ctx context.Context) {
 		if newStatus != svc.Status {
 			_ = s.serviceRepo.UpdateStatus(ctx, svc.ID, newStatus)
 			slog.Info("service status synced", "service_id", svc.ID, "old", svc.Status, "new", newStatus)
+		}
+	}
+
+	// Reconcile stuck deploys every 10 cycles (~5 min)
+	s.reconcileTick++
+	if s.reconcileTick >= 10 {
+		s.reconcileTick = 0
+		if n, err := s.deployRepo.ReconcileStuck(ctx); err != nil {
+			slog.Error("reconcile stuck deploys", "err", err)
+		} else if n > 0 {
+			slog.Info("reconciled stuck deploys", "count", n)
 		}
 	}
 }

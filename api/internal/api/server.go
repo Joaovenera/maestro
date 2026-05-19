@@ -78,6 +78,8 @@ func NewServer(repos *Repos, enqueuer *tasks.Enqueuer, coolifyClient *coolify.Cl
 	admin.DELETE("/domains/:id", dh.Delete)
 	admin.PATCH("/domains/:id/assign", dh.Assign)
 	admin.PATCH("/domains/:id/unassign", dh.Unassign)
+	admin.PATCH("/domains/:id/primary", dh.SetPrimary)
+	admin.POST("/domains/:id/sync", dh.Sync)
 
 	// Services (admin)
 	sh := handlers.NewServiceHandler(repos.Service, repos.Domain, repos.Deploy, enqueuer)
@@ -92,6 +94,7 @@ func NewServer(repos *Repos, enqueuer *tasks.Enqueuer, coolifyClient *coolify.Cl
 
 	// Deploy history (admin)
 	dep := handlers.NewDeployHistoryHandler(repos.Deploy)
+	admin.GET("/deploys", dep.List)
 	admin.GET("/deploys/:id", dep.Get)
 
 	// Scheduled deploys (admin)

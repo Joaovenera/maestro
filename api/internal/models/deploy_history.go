@@ -27,3 +27,10 @@ type DeployHistory struct {
 	LogSnippet        string       `json:"log_snippet,omitempty"`
 	CreatedAt         time.Time    `json:"created_at"`
 }
+
+type DeployWithContext struct {
+	DeployHistory
+	ServiceName string    `json:"service_name"`
+	ClientID    uuid.UUID `json:"client_id"`
+	ClientName  string    `json:"client_name"`
+}
