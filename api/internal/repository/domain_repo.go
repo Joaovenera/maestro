@@ -103,6 +103,29 @@ func (r *DomainRepo) Delete(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+// SetPrimary marks the given domain as primary and clears is_primary on all
+// other domains of the same client, then returns the updated domain.
+func (r *DomainRepo) SetPrimary(ctx context.Context, id uuid.UUID) (*models.Domain, error) {
+	d := &models.Domain{}
+	err := r.db.QueryRow(ctx,
+		`SELECT client_id FROM domains WHERE id=$1`, id).Scan(&d.ClientID)
+	if err != nil {
+		return nil, err
+	}
+	_, err = r.db.Exec(ctx,
+		`UPDATE domains SET is_primary=false, updated_at=$1 WHERE client_id=$2`,
+		time.Now(), d.ClientID)
+	if err != nil {
+		return nil, err
+	}
+	err = r.db.QueryRow(ctx, `
+		UPDATE domains SET is_primary=true, updated_at=$1 WHERE id=$2
+		RETURNING id, client_id, service_id, hostname, is_primary, ssl_enabled, verified_at, created_at, updated_at`,
+		time.Now(), id,
+	).Scan(&d.ID, &d.ClientID, &d.ServiceID, &d.Hostname, &d.IsPrimary, &d.SSLEnabled, &d.VerifiedAt, &d.CreatedAt, &d.UpdatedAt)
+	return d, err
+}
+
 func (r *DomainRepo) MarkVerified(ctx context.Context, id uuid.UUID) error {
 	_, err := r.db.Exec(ctx,
 		`UPDATE domains SET verified_at=$1, updated_at=$1 WHERE id=$2`,
