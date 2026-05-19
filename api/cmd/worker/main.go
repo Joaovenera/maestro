@@ -93,7 +93,7 @@ func main() {
 	// Background workers
 	go workers.NewHardwareCollector(sentinelClient, coolifyClient, serviceRepo, metricsRepo).Run(ctx)
 	go workers.NewUptimeChecker(domainRepo, metricsRepo).Run(ctx)
-	go workers.NewStatusSyncer(coolifyClient, serviceRepo).Run(ctx)
+	go workers.NewStatusSyncer(coolifyClient, serviceRepo, deployRepo).Run(ctx)
 
 	go func() {
 		if err := scheduler.Run(); err != nil {
